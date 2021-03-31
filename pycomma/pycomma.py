@@ -1,10 +1,12 @@
 import json
+import typing
 
 class Comma:
-    def __init__(self, csv_file, includes_header=True, delimiter=","):
+    def __init__(self, csv_file, includes_header=True, delimiter=",", console_mode=False):
         self.__csv_file = csv_file
         self.__includes_header = includes_header
         self.__delimiter = delimiter
+        self.__console_mode = console_mode
         self.__data = []
         self.__header = []
         self.__prepared = False
