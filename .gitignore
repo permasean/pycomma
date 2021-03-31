@@ -1,8 +1,18 @@
 # CSV files
 *.csv
+!pycomma/tests/test_data.csv
 
 # venv
 env/
 
 # JSON files
 *.json
+
+# cache
+__pycache__/
+.pytest_cache/
+pycomma/__pycache__/
+pycomma/tests/__pycache__/
+
+# VSCode
+.vscode/
