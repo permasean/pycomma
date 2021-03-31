@@ -1,6 +1,7 @@
 # CSV files
 *.csv
-!pycomma/tests/test_data.csv
+!pycomma/tests/test_data_with_header.csv
+!pycomma/tests/test_data_without_header.csv
 
 # venv
 env/
