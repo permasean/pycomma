@@ -1,7 +1,7 @@
 """
 This file contains tests for the prepare() function within class Comma.
 Each test function represents a test case for the function's behavior 
-when a dependent class property is set to a certain expected value
+when class properties it depends on are set to certain values. 
 """
 from ..comma import Comma
 import pytest
@@ -18,9 +18,9 @@ test_data_without_header_path = os.path.join(
     "test_data_without_header.csv"
 )
 
-def test_prepare_when_includes_header_is_true_and_prepared_is_true():
+def test_prepare_when_prepared_is_true():
     csv_file = open(test_data_with_header_path, mode="r", encoding="utf-8")
-    comma = Comma(csv_file, includes_header=True)
+    comma = Comma(csv_file)
     assert comma._get_prepared() == False
     comma.prepare()
     assert comma._get_prepared() == True
@@ -33,6 +33,7 @@ def test_prepare_when_includes_header_is_true_and_prepared_is_true():
 def test_prepare_when_includes_header_is_true_and_prepared_is_false():
     csv_file = open(test_data_with_header_path, mode="r", encoding="utf-8")
     comma = Comma(csv_file, includes_header=True)
+    assert comma._get_includes_header() == True
     assert comma._get_prepared() == False
     comma.prepare()
     assert comma._get_prepared() == True
@@ -41,6 +42,7 @@ def test_prepare_when_includes_header_is_true_and_prepared_is_false():
 def test_prepare_when_includes_header_is_false_and_prepared_is_false():
     csv_file = open(test_data_without_header_path, mode="r", encoding="utf-8")
     comma = Comma(csv_file, includes_header=False)
+    assert comma._get_includes_header() == False
     assert comma._get_prepared() == False
     comma.set_header([])
 
@@ -50,5 +52,14 @@ def test_prepare_when_includes_header_is_false_and_prepared_is_false():
     assert comma._get_prepared() == False
     csv_file.close()
 
-if __name__ == "__main__":
-    print("Hello World!")
+def test_prepare_when_includes_header_is_false_and_header_is_default_value():
+    csv_file = open(test_data_without_header_path, mode="r", encoding="utf-8")
+    comma = Comma(csv_file, includes_header=False)
+    assert comma._get_includes_header() == False
+    assert isinstance(comma.get_header(), list)
+    assert len(comma.get_header()) == 0
+    
+    with pytest.raises(Exception) as excinfo:
+        comma.prepare()
+
+    csv_file.close()

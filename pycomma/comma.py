@@ -4,15 +4,26 @@ import typing
 class Comma:
     def __init__(
         self, 
-        csv_file, 
+        filepath, 
         includes_header=True, 
         delimiter=",", 
         console_mode=False,
     ):
-        self.__csv_file = csv_file
-        self.__includes_header = includes_header
+        self.__filepath = filepath
+
+        if isinstance(includes_header, bool):
+            self.__includes_header = includes_header
+        else:
+            raise ValueError("Wrong argument type for includes_header")
+
         self.__delimiter = delimiter
-        self.__console_mode = console_mode
+
+        if isinstance(console_mode, bool):
+            self.__console_mode = console_mode
+        else: 
+            raise ValueError("Wrong argument type for console_mode")
+
+        self.__csv_file = None
         self.__data = []
         self.__header = []
         self.__prepared = False
@@ -23,10 +34,11 @@ class Comma:
         headers = header_line.split(self.__delimiter)
         headers[-1] = headers[-1].replace("\n", "")
         return headers
-    
+
     def __extract_data_from_file(self) -> list:
         data = []
         line = self.__csv_file.readline()
+
         while line:
             line = line.split(self.__delimiter)
             line[-1] = line[-1].replace("\n", "")
@@ -36,6 +48,12 @@ class Comma:
         return data
 
     def prepare(self):
+        try:
+            csv_file = open(self.__filepath, mode="r", encoding="utf-8")
+            self.__csv_file = csv_file
+        except:
+            raise IOError("File path is invalid")
+
         if not self.__prepared:
             if self.__includes_header:
                 self.__header = self.__extract_header_from_file()
@@ -44,11 +62,6 @@ class Comma:
                     msg = "No header detected. "
                     msg += "Please manually set a header before prepare call."
                     raise Exception(msg)
-                else:
-                    if type(self.__header) is not list:
-                        msg = "Configured header is not of correct format. "
-                        msg += "Please configure as a list of strings."
-                        raise Exception(msg)
 
             self.__data = self.__extract_data_from_file()
 
@@ -67,10 +80,18 @@ class Comma:
             msg += "To enable, use includes_header=False in constructor."
             raise Exception(msg)
         else:
+            if not isinstance(header, list):
+                msg = "Incorrect format detected for header. "
+                msg += "Please configure as a list of strings."
+                raise Exception(msg)
+
             self.__header = header
 
     def _get_prepared(self) -> bool:
         return self.__prepared
+
+    def _get_includes_header(self) -> bool:
+        return self.__includes_header
 
     def get_data(self) -> list:
         return self.__data
@@ -111,8 +132,7 @@ class Comma:
 
     
 if __name__ == "__main__":
-    csv_filename = "stroke_data.csv"
-    csv_file = open(csv_filename, mode="r", encoding="utf-8")
-    comma = Comma(csv_file)
+    filepath = "stroke_data.csv"
+    comma = Comma(filepath)
     comma.prepare()
     comma.save_as_json()
