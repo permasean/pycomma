@@ -33,7 +33,6 @@ class Comma:
             data.append(line)
             line = self.__csv_file.readline()
 
-        self.__csv_file.close()
         return data
 
     def prepare(self):
@@ -53,10 +52,11 @@ class Comma:
 
             self.__data = self.__extract_data_from_file()
 
+            self.__csv_file.close()
             self.__prepared = True
             print("Preparation complete")
         else:
-            print("Redundant preparation call detected. Will be ignored.")
+            raise Exception("Redundant preparation call detected")
 
     def get_header(self) -> list:
         return self.__header
@@ -68,6 +68,9 @@ class Comma:
             raise Exception(msg)
         else:
             self.__header = header
+
+    def _get_prepared(self) -> bool:
+        return self.__prepared
 
     def get_data(self) -> list:
         return self.__data
