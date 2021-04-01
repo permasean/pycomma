@@ -19,8 +19,7 @@ test_data_without_header_path = os.path.join(
 )
 
 def test_prepare_when_prepared_is_true():
-    csv_file = open(test_data_with_header_path, mode="r", encoding="utf-8")
-    comma = Comma(csv_file)
+    comma = Comma(test_data_with_header_path)
     assert comma._get_prepared() == False
     comma.prepare()
     assert comma._get_prepared() == True
@@ -28,20 +27,18 @@ def test_prepare_when_prepared_is_true():
     with pytest.raises(Exception) as excinfo:
         comma.prepare()
 
-    csv_file.close()
+    assert comma.file_is_closed() == True
 
 def test_prepare_when_includes_header_is_true_and_prepared_is_false():
-    csv_file = open(test_data_with_header_path, mode="r", encoding="utf-8")
-    comma = Comma(csv_file, includes_header=True)
+    comma = Comma(test_data_with_header_path, includes_header=True)
     assert comma._get_includes_header() == True
     assert comma._get_prepared() == False
     comma.prepare()
     assert comma._get_prepared() == True
-    csv_file.close()
+    assert comma.file_is_closed() == True
 
 def test_prepare_when_includes_header_is_false_and_prepared_is_false():
-    csv_file = open(test_data_without_header_path, mode="r", encoding="utf-8")
-    comma = Comma(csv_file, includes_header=False)
+    comma = Comma(test_data_without_header_path, includes_header=False)
     assert comma._get_includes_header() == False
     assert comma._get_prepared() == False
     comma.set_header([])
@@ -50,16 +47,15 @@ def test_prepare_when_includes_header_is_false_and_prepared_is_false():
         comma.prepare()
     
     assert comma._get_prepared() == False
-    csv_file.close()
+    assert comma.file_is_closed() == True
 
 def test_prepare_when_includes_header_is_false_and_header_is_default_value():
-    csv_file = open(test_data_without_header_path, mode="r", encoding="utf-8")
-    comma = Comma(csv_file, includes_header=False)
+    comma = Comma(test_data_without_header_path, includes_header=False)
     assert comma._get_includes_header() == False
     assert isinstance(comma.get_header(), list)
     assert len(comma.get_header()) == 0
     
     with pytest.raises(Exception) as excinfo:
         comma.prepare()
-
-    csv_file.close()
+    
+    assert comma.file_is_closed() == True

@@ -23,19 +23,24 @@ class Comma:
         else: 
             raise ValueError("Wrong argument type for console_mode")
 
-        self.__csv_file = None
+        try:
+            csv_file = open(self.__filepath, mode="r", encoding="utf-8")
+            self.__csv_file = csv_file
+        except:
+            raise IOError("File path is invalid")
+
         self.__data = []
         self.__header = []
         self.__prepared = False
         self.__json = []
 
-    def __extract_header_from_file(self) -> list:
+    def _extract_header_from_file(self) -> list:
         header_line = self.__csv_file.readline()
-        headers = header_line.split(self.__delimiter)
-        headers[-1] = headers[-1].replace("\n", "")
-        return headers
+        header = header_line.split(self.__delimiter)
+        header[-1] = header[-1].replace("\n", "")
+        return header
 
-    def __extract_data_from_file(self) -> list:
+    def _extract_data_from_file(self) -> list:
         data = []
         line = self.__csv_file.readline()
 
@@ -48,27 +53,23 @@ class Comma:
         return data
 
     def prepare(self):
-        try:
-            csv_file = open(self.__filepath, mode="r", encoding="utf-8")
-            self.__csv_file = csv_file
-        except:
-            raise IOError("File path is invalid")
-
         if not self.__prepared:
             if self.__includes_header:
-                self.__header = self.__extract_header_from_file()
+                self.__header = self._extract_header_from_file()
             else:
                 if len(self.__header) == 0 or self.__header is None:
                     msg = "No header detected. "
                     msg += "Please manually set a header before prepare call."
+                    self.__csv_file.close()
                     raise Exception(msg)
 
-            self.__data = self.__extract_data_from_file()
+            self.__data = self._extract_data_from_file()
 
             self.__csv_file.close()
             self.__prepared = True
             print("Preparation complete")
         else:
+            self.__csv_file.close()
             raise Exception("Redundant preparation call detected")
 
     def get_header(self) -> list:
@@ -126,6 +127,13 @@ class Comma:
             json.dump(self.__json, json_file)
 
         print("Successfully exported as " + file_path)
+    
+    def file_is_closed(self):
+        return self.__csv_file.closed
+
+    def close_file(self):
+        if not self.file_is_closed():
+            self.__csv_file.close()
 
     #todo: batch operations, undo + redo operations with version mapping for shell scripting
     #examples: append to certain column, delete substr of certain column, math operations within column or between columns
