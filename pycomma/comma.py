@@ -10,6 +10,7 @@ class Comma:
         delimiter=",", 
         console_mode=False,
         configs={
+            "success_messages": True
         },
     ):
         self.__filepath = filepath
@@ -33,6 +34,7 @@ class Comma:
         self.__json = {}
         self.__history = {}
         self.__primary_column_name = None
+        self.__configs = configs
 
     def __repr__(self):
         if not self.__prepared:
@@ -61,12 +63,21 @@ class Comma:
 
             self.__header = header
 
-    def get_primary_column_name(self) -> str:
+    def _get_primary_column_name(self) -> str:
         return str(self.__primary_column_name)
 
-    def set_primary_column_name(self, column_name):
+    def _set_primary_column_name(self, column_name, ignore_duplicate=False):
         if isinstance(column_name, str) and column_name in self.__header:
-            self.__primary_column_name = column_name
+            num_of_rows = self.dimension()["rows"]
+            if len(self.unique_values(column_name)) == num_of_rows:   
+                self.__primary_column_name = column_name
+            else:
+                if not ignore_duplicate:
+                    msg = "Duplicate values detected. "
+                    msg = "Primary column cannot have duplicate values"
+                    raise Exception(msg)
+                else:
+                    self.__primary_column_name = column_name
 
     def _get_prepared(self) -> bool:
         return self.__prepared
@@ -84,6 +95,9 @@ class Comma:
     def _manual_close_file_for_testing(self):
         if not self.file_is_closed():
             self.__csv_file.close()
+
+    def assign_primary(self, column_name, ignore_duplicate=False):
+        self._set_primary_column_name(column_name, ignore_duplicate)
 
     def dimension(self) -> dict:
         return {"columns": len(self.__header), "rows": len(self.__data)}
@@ -124,7 +138,8 @@ class Comma:
 
             self.__csv_file.close()
             self.__prepared = True
-            print("Preparation complete")
+            if self.__configs["success_messages"]:
+                print("Preparation complete")
         else:
             self.__csv_file.close()
             raise Exception("Redundant preparation call detected")
@@ -168,7 +183,8 @@ class Comma:
                 row_string += "\n"
                 csv_file.write(row_string)
 
-        print("Successfully exported as " + file_path)
+        if self.__configs["success_messages"]:
+            print("Successfully exported as " + file_path)
 
     def save_as_json(self, file_path=None):
         if not self.__json or self.__json is None:
@@ -180,7 +196,8 @@ class Comma:
         with open(file_path, "w") as json_file:
             json.dump(self.__json, json_file)
 
-        print("Successfully exported as " + file_path)
+        if self.__configs["success_messages"]:
+            print("Successfully exported as " + file_path)
 
     def file_is_closed(self) -> bool:
         return self.__csv_file.closed
@@ -308,7 +325,8 @@ class Comma:
                     self.__data[i][column_idx] = "None"
                 count += 1
         
-        print("Fill Count: " + str(count))
+        if self.__configs["success_messages"]:
+            print("Fill Count: " + str(count))
 
     def sum(self, column_name, ignore_na=False) -> float:
         if not self.__prepared:
@@ -564,7 +582,9 @@ class Comma:
         self.__header[column_x_idx] = self.__header[column_y_idx]
         self.__header[column_y_idx] = value_holder
 
-        print("Column " + x_column_name + " switched with " + y_column_name)
+        if self.__configs["success_messages"]:
+            msg = "Column " + x_column_name + " switched with " + y_column_name
+            print(msg)
 
     def column_stats(self, column_name, ignore_na=False) -> dict:
         return {
@@ -577,29 +597,92 @@ class Comma:
             "maximum": self.maximum(column_name)
         }
 
-    def find_row_index_by_value(self, primary_column_value):
+    def find_row(self, primary_column_value) -> int:
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
         if self.__primary_column_name is None:
             raise Exception("No primary column detected. Set a primary column")
 
-        return None
+        primary_column_idx = self.__header.index(self.__primary_column_name)
 
-    def find_row_indices_by_value(self, primary_column_values):
+        row_idx = 0
+        for i in range(len(self.__data)):
+            if self.__data[i][primary_column_idx] == str(primary_column_value):
+                result = i
+                break
+
+        return row_idx
+
+    def find_rows(self, primary_column_values) -> list[int]:
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
         if self.__primary_column_name is None:
             raise Exception("No primary column detected. Set a primary column")
 
-        if isinstance(primary_column_values, list):
-            return None
-        else:
+        if not isinstance(primary_column_values, list):
             raise Exception("Incorrect param type detected. Must be a list")
-        return None
 
-    def delete_row_by_index(self, row_idx):
-        if self._primary_column_name is None:
+        try:
+            for i in range(len(primary_column_values)):
+                primary_column_values[i] = str(primary_column_values[i])
+        except ValueError:
+            raise ValueError("Argument cannot be converted to String")
+
+        primary_column_idx = self.__header.index(self.__primary_column_name)
+
+        row_indices = []
+        found_matches_for = []
+        for i in range(len(self.__data)):
+            if self.__data[i][primary_column_idx] in primary_column_values:
+                row_indices.append(i)
+                found_matches_for.append(self.__data[i][primary_column_idx])
+
+                if len(row_indices) == len(primary_column_values):
+                    break
+
+        no_matches_for = []
+        if len(row_indices) != len(primary_column_values):
+            for value in primary_column_values:
+                if value not in found_matches_for:
+                    no_matches_for.append(value)
+
+            for non_match in no_matches_for:
+                print("No match was found for primary value " + str(non_match))
+
+        return row_indices
+
+    def delete_row(self, row_idx) -> list[str]:
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
+        if self.__primary_column_name is None:
             raise Exception("No primary column detected. Set a primary column")
 
-    def delete_rows_by_indices(self, row_indices):
-        if self._primary_column_name is None:
+        if not isinstance(row_idx, int):
+            raise ValueError("Invalid argument type. Must be integer")
+        
+        popped = self.__data.pop(row_idx)
+        return popped
+
+    def delete_rows(self, row_indices):
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
+        if self.__primary_column_name is None:
             raise Exception("No primary column detected. Set a primary column")
+
+        if not isinstance(row_indices, list):
+            raise ValueError("Invalid argument type. Must be a list")
+
+        row_indices.sort(reverse=True)
+
+        for idx in row_indices:
+            self.__data.pop(idx)
+
+        if self.__configs["success_messages"]:
+            print("Successfully deleted " + str(len(row_indices)) + " rows")
 
     def add_row(self, row):
         if not isinstance(row, list):
@@ -608,22 +691,47 @@ class Comma:
         if len(row) != len(self.__header):
             raise Exception("Length of row must match the number of columns")
 
-        return None
+        self.__data.append(row)
 
-    def show(self):
-        if not self.__prepared:
-            raise Exception("Must call comma.prepare() first")
-
-        five_rows = self.__data[:5]
-        header_row = "          ".join(self.__header)
-        print(header_row)
+        if self.__configs["success_messages"]:
+            print("Successfully added row")
 
     def get(self, idx, column_names=[]) -> dict:
-        return None
+        if not isinstance(idx, int):
+            raise ValueError("Invalid argument type idx. Must be integer")
+
+        if not isinstance(column_names, list):
+            msg = "Invalid argument type column_names. Must be list"
+            raise ValueError(msg)
+
+        result = {}
+        if not column_names:
+            for i in range(len(self.__header)):
+                result[self.__header[i]] = self.__data[idx][i]
+        else:
+            column_indices = []
+            for column_name in column_names:
+                try: 
+                    column_idx = self.__header.index(str(column_name))
+                    column_indices.append(column_idx)
+                except ValueError:
+                    msg = "Column " + str(column_name) + " does not exist"
+                    raise ValueError(msg)
+
+            for i in range(len(column_indices)):
+                result[column_names[i]] = self.__data[idx][column_indices[i]]
+
+        return result
 
     def get_values(self, idx, column_names=[]) -> list:
-        return None
+        if not isinstance(idx, int):
+            raise ValueError("Invalid argument type idx. Must be integer")
 
-    def show_json(self):
-        # prints first 5 rows in json
-        return None
+        if not isinstance(column_names, list):
+            msg = "Invalid argument type column_names. Must be list"
+            raise ValueError(msg)
+            
+        return self.get_data()[idx]
+
+    def show(self):
+        return self
