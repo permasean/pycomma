@@ -270,6 +270,21 @@ class Comma:
         if not self.__console_mode:
             return self.__data
 
+    def has_empty(self, column_name) -> bool:
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
+        try:
+            column_idx = self.__header.index(str(column_name))
+        except ValueError:
+            raise ValueError("Column " + str(column_name) + " does not exist")
+
+        for i in range(len(self.__data)):
+            if not self.__data[i][column_idx]:
+                return True
+
+        return False
+
     def fill_empty(self, column_name, replace_with):
         if not self.__prepared:
             raise Exception("Must call comma.prepare() first")
@@ -406,33 +421,161 @@ class Comma:
         return statistics.stdev(column_values)
 
     def minimum(self, column_name):
-        return None
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
+        try: 
+            column_idx = self.__header.index(str(column_name))
+        except ValueError:
+            raise ValueError("Column " + str(column_name) + " does not exist")
+
+        column_values = []
+        for i in range(len(self.__data)):
+            value = self.__data[i][column_idx]
+
+            try:
+                num = float(value)
+                column_values.append(num)
+            except ValueError:
+                continue
+
+        return min(column_values)
 
     def maximum(self, column_name):
-        return None
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
 
-    def value_counts(self, column_name):
-        return None
+        try: 
+            column_idx = self.__header.index(str(column_name))
+        except ValueError:
+            raise ValueError("Column " + str(column_name) + " does not exist")
+
+        column_values = []
+        for i in range(len(self.__data)):
+            value = self.__data[i][column_idx]
+
+            try:
+                num = float(value)
+                column_values.append(num)
+            except ValueError:
+                continue
+
+        return max(column_values)
+
+    def value_counts(self, column_name) -> dict:
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
+        try: 
+            column_idx = self.__header.index(str(column_name))
+        except ValueError:
+            raise ValueError("Column " + str(column_name) + " does not exist")
+
+        counts = {}
+        for i in range(len(self.__data)):
+            value = str(self.__data[i][column_idx])
+            
+            if value not in counts:
+                counts[value] = 1
+            else:
+                counts[value] += 1
+
+        return counts
+
+    def unique_values(self, column_name) -> list:
+        return list(self.value_counts(column_name).keys())
 
     def add_column(self, column_name, data):
-        # data argument should be a list
-        return None
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
+        self.__header.append(str(column_name))
+        
+        if not isinstance(data, list):
+            raise TypeError("Data must be a list")
+
+        if len(data) != self.dimension()["rows"]:
+            raise ValueError("Length of data does not match number of rows")
+
+        for i in range(len(self.__data)):
+            self.__data[i].append(str(data[i]))
 
     def delete_column(self, column_name):
-        return None
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
 
-    def rearrange_columns(self, header):
-        # header should be a list of column names in desired arrangement
-        return None
+        try: 
+            column_idx = self.__header.index(str(column_name))
+        except ValueError:
+            raise ValueError("Column " + str(column_name) + " does not exist")
+
+        for i in range(len(self.__data)):
+            self.__data[i].pop(column_idx)
+
+        self.__header.pop(column_idx)
+
+    def rearrange_columns(self, column_names):
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
+        if len(column_names) != len(self.__header):
+            raise ValueError("Argument must be of same length as header")
+
+        column_indices = []
+        for column_name in column_names:
+            try: 
+                column_idx = self.__header.index(str(column_name))
+                column_indices.append(column_idx)
+            except ValueError:
+                msg = "Column " + str(column_name) + " does not exist"
+                raise ValueError(msg)
+
+        for i in range(len(self.__data)):
+            rearranged_values = [0] * len(self.__header)
+
+            for j in range(len(self.__header)):
+                rearranged_values[j] = self.__data[i][column_indices[j]]
+
+            self.__data[i] = rearranged_values 
+
+        if not self.__console_mode:
+            return self.__data
 
     def switch_columns(self, x_column_name, y_column_name):
-        return None
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
 
-    def unique_values(self, column_name):
-        return None
+        try: 
+            column_x_idx = self.__header.index(str(x_column_name))
+        except ValueError:
+            raise ValueError("Column " + str(x_column_name) +" does not exist")
 
-    def column_stat(self, column_name):
-        return None
+        try: 
+            column_y_idx = self.__header.index(str(y_column_name))
+        except ValueError:
+            raise ValueError("Column " + str(y_column_name) +" does not exist")
+
+        for i in range(len(self.__data)):
+            value_holder = self.__data[i][column_x_idx]
+            self.__data[i][column_x_idx] = self.__data[i][column_y_idx]
+            self.__data[i][column_y_idx] = value_holder
+
+        value_holder = self.__header[column_x_idx]
+        self.__header[column_x_idx] = self.__header[column_y_idx]
+        self.__header[column_y_idx] = value_holder
+
+        print("Column " + x_column_name + " switched with " + y_column_name)
+
+    def column_stats(self, column_name, ignore_na=False) -> dict:
+        return {
+            "column_name": str(column_name),
+            "mean": self.mean(column_name, ignore_na=ignore_na),
+            "median": self.median(column_name, ignore_na=ignore_na),
+            "stdev": self.stdev(column_name, ignore_na=ignore_na),
+            "sum": self.sum(column_name, ignore_na=ignore_na),
+            "minimum": self.minimum(column_name),
+            "maximum": self.maximum(column_name)
+        }
 
     def find_row_index_by_value(self, primary_column_value):
         if self.__primary_column_name is None:
@@ -475,16 +618,12 @@ class Comma:
         header_row = "          ".join(self.__header)
         print(header_row)
 
+    def get(self, idx, column_names=[]) -> dict:
+        return None
+
+    def get_values(self, idx, column_names=[]) -> list:
+        return None
+
     def show_json(self):
         # prints first 5 rows in json
         return None
-    
-
-    #todo: batch operations
-    #examples: append to certain column, delete substr of certain column, math operations within column or between columns
-
-if __name__ == "__main__":
-    filepath = "stroke_data.csv"
-    comma = Comma(filepath)
-    comma.prepare()
-    comma.save_as_csv()
