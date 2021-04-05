@@ -2,7 +2,7 @@
 This file contains tests for the configuration of the header property
 within class Comma, given certain values of properties it depends on.
 """
-from ..comma import Comma
+from ..pycomma.comma import Comma
 import pytest
 import os
 

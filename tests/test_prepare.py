@@ -3,7 +3,7 @@ This file contains tests for the prepare() function within class Comma.
 Each test function represents a test case for the function's behavior 
 when class properties it depends on are set to certain values. 
 """
-from ..comma import Comma
+from ..pycomma.comma import Comma
 import pytest
 import os
 

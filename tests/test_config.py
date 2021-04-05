@@ -1,7 +1,7 @@
 """
 This file contains tests for the config-related functions within class Comma.
 """
-from ..comma import Comma
+from ..pycomma.comma import Comma
 import pytest
 import os
 
