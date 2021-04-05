@@ -32,9 +32,10 @@ class Comma:
         self.__header = []
         self.__prepared = False
         self.__json = {}
-        self.__history = {}
         self.__primary_column_name = None
         self.__configs = configs
+        
+        # self.__history WIP
 
     def __repr__(self):
         if not self.__prepared:
@@ -43,6 +44,9 @@ class Comma:
         five_rows = self.__data[:5]
         header_row = str("          ".join(self.__header))
         return header_row
+
+    def show(self):
+        return self
 
     def get_data(self) -> list:
         return self.__data
@@ -163,7 +167,7 @@ class Comma:
         self._to_json()
         return self.__json
 
-    def join_with_delimiter(self, a_list, delimiter=",") -> str:
+    def _join_with_delimiter(self, a_list, delimiter=",") -> str:
         return str(delimiter.join(a_list))
 
     def save_as_csv(self, file_path=None, delimiter=","):
@@ -174,17 +178,17 @@ class Comma:
             file_path = "data.csv"
 
         with open(file_path, "w") as csv_file:
-            header_string = join_with_delimiter(self.__header, delimiter)
+            header_string = _join_with_delimiter(self.__header, delimiter)
             header_string += "\n"
             csv_file.write(header_string)
 
             for row in self.__data:
-                row_string = join_with_delimiter(row, delimiter)
+                row_string = _join_with_delimiter(row, delimiter)
                 row_string += "\n"
                 csv_file.write(row_string)
 
         if self.__configs["success_messages"]:
-            print("Successfully exported as " + file_path)
+            print("Export completed at " + file_path)
 
     def save_as_json(self, file_path=None):
         if not self.__json or self.__json is None:
@@ -197,20 +201,10 @@ class Comma:
             json.dump(self.__json, json_file)
 
         if self.__configs["success_messages"]:
-            print("Successfully exported as " + file_path)
+            print("Export completed at " + file_path)
 
     def file_is_closed(self) -> bool:
         return self.__csv_file.closed
-
-    def undo(self):
-        if not self.__console_mode:
-            raise Exception("Must enable console mode to use history features")
-        return None
-
-    def redo(self):
-        if not self.__console_mode:
-            raise Exception("Must enable console mode to use history features")
-        return None
 
     def append(self, column_name, str_to_append):
         if not self.__prepared:
@@ -229,8 +223,8 @@ class Comma:
         for i in range(len(self.__data)):
             self.__data[i][column_idx] += str_to_append
 
-        if not self.__console_mode:
-            return self.__data
+        if self.__configs["success_messages"]:
+            print("Value append completed.")
 
     def replace(self, column_name, substr, replace_with):
         if not self.__prepared:
@@ -252,8 +246,8 @@ class Comma:
                 temp = self.__data[i][column_idx].lower()
                 self.__data[i][column_idx] = temp.replace(substr, replace_with)
 
-        if not self.__console_mode:
-            return self.__data
+        if self.__configs["success_messages"]:
+            print("Value replace completed.")
 
     def change(
         self, 
@@ -284,8 +278,36 @@ class Comma:
                 if self.__data[i][column_idx].lower() == changing.lower():
                     self.__data[i][column_idx] == change_to
 
-        if not self.__console_mode:
-            return self.__data
+        if self.__configs["success_messages"]:
+            print("Value change completed.")
+
+    def strip(self, column_name, side="both"):
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
+        try: 
+            column_idx = self.__header.index(str(column_name))
+        except ValueError:
+            raise ValueError("Column " + str(column_name) + " does not exist")
+
+        if not isinstance(side, str):
+            msg = "Invalid argument side. Must be 'both', 'right', or 'left'"
+            raise ValueError(msg)
+
+        if side == "both":
+            for i in range(len(self.__data)):
+                self.__data[i][column_idx] = self.__data[i][column_idx].strip()
+        elif side == "right":
+            for i in range(len(self.__data)):
+                self.__data[i][column_idx] = self.__data[i][column_idx].rstrip()
+        elif side == "left":
+            for i in range(len(self.__data)):
+                self.__data[i][column_idx] = self.__data[i][column_idx].lstrip()
+        else:
+            raise ValueError("Argument side must be 'both', 'right', or 'left'")
+
+        if self.__configs["success_messages"]:
+            print("Column strip completed.")
 
     def has_empty(self, column_name) -> bool:
         if not self.__prepared:
@@ -503,6 +525,21 @@ class Comma:
     def unique_values(self, column_name) -> list:
         return list(self.value_counts(column_name).keys())
 
+    def column_values(self, column_name) -> list:
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
+        try: 
+            column_idx = self.__header.index(str(column_name))
+        except ValueError:
+            raise ValueError("Column " + str(column_name) + " does not exist")
+        
+        values = []
+        for i in range(len(self.__data)):
+            values.append(self.__data[i][column_idx])
+
+        return values
+
     def add_column(self, column_name, data):
         if not self.__prepared:
             raise Exception("Must call comma.prepare() first")
@@ -556,8 +593,10 @@ class Comma:
 
             self.__data[i] = rearranged_values 
 
-        if not self.__console_mode:
-            return self.__data
+        if self.__configs["success_messages"]:
+            print("Column rearrangement completed.")
+
+        
 
     def switch_columns(self, x_column_name, y_column_name):
         if not self.__prepared:
@@ -657,9 +696,6 @@ class Comma:
         if not self.__prepared:
             raise Exception("Must call comma.prepare() first")
 
-        if self.__primary_column_name is None:
-            raise Exception("No primary column detected. Set a primary column")
-
         if not isinstance(row_idx, int):
             raise ValueError("Invalid argument type. Must be integer")
         
@@ -669,9 +705,6 @@ class Comma:
     def delete_rows(self, row_indices):
         if not self.__prepared:
             raise Exception("Must call comma.prepare() first")
-
-        if self.__primary_column_name is None:
-            raise Exception("No primary column detected. Set a primary column")
 
         if not isinstance(row_indices, list):
             raise ValueError("Invalid argument type. Must be a list")
@@ -732,6 +765,3 @@ class Comma:
             raise ValueError(msg)
             
         return self.get_data()[idx]
-
-    def show(self):
-        return self
