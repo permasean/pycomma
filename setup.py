@@ -12,6 +12,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/JordanKobeWade/pycomma',
+    download_url='https://github.com/JordanKobeWade/pycomma/releases',
     author='Sean Hwang',
     author_email='seanphwang@gmail.com',
     license='MIT',
