@@ -119,8 +119,13 @@ class Comma:
     def show(self):
         return self
 
-    def show_configs(self):
+    def get_configs(self) -> dict:
         return self.__configs
+
+    def get_config(self, config) -> dict:
+        if str(config) not in self.__configs:
+            raise ValueError("Config does not exist")
+        return {"config": str(config), "value": self.__configs[str(config)]}
 
     def set_config(self, config, value):
         if not isinstance(config, str):
@@ -162,18 +167,26 @@ class Comma:
     def _get_primary_column_name(self) -> str:
         return str(self.__primary_column_name)
 
+    def get_primary(self) -> str:
+        return self._get_primary_column_name()
+
     def _set_primary_column_name(self, column_name, ignore_duplicate=False):
-        if isinstance(column_name, str) and column_name in self.__header:
-            num_of_rows = self.dimension()["rows"]
-            if len(self.unique_values(column_name)) == num_of_rows:   
-                self.__primary_column_name = column_name
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
+        if str(column_name) not in self.__header:
+            raise ValueError("Column " + str(column_name) + " does not exist")
+            
+        num_of_rows = self.dimension()["rows"]
+        if len(self.unique_values(str(column_name))) == num_of_rows:   
+            self.__primary_column_name = str(column_name)
+        else:
+            if not ignore_duplicate:
+                msg = "Duplicate values detected. "
+                msg = "Primary column cannot have duplicate values"
+                raise Exception(msg)
             else:
-                if not ignore_duplicate:
-                    msg = "Duplicate values detected. "
-                    msg = "Primary column cannot have duplicate values"
-                    raise Exception(msg)
-                else:
-                    self.__primary_column_name = column_name
+                self.__primary_column_name = column_name
 
     def _get_prepared(self) -> bool:
         return self.__prepared
