@@ -9,7 +9,6 @@ class Comma:
         filepath, 
         includes_header=True, 
         delimiter=",", 
-        console_mode=False,
         configs={
             "success_messages": True,
             "max_row_display": 5
@@ -23,11 +22,6 @@ class Comma:
             raise ValueError("Wrong argument type for includes_header")
 
         self.__delimiter = delimiter
-
-        if isinstance(console_mode, bool):
-            self.__console_mode = console_mode
-        else: 
-            raise ValueError("Wrong argument type for console_mode")
 
         self.__csv_file = None
         self.__data = []
@@ -183,9 +177,6 @@ class Comma:
 
     def _get_prepared(self) -> bool:
         return self.__prepared
-
-    def _get_console_mode(self) -> bool:
-        return self.__console_mode
 
     def _get_includes_header(self) -> bool:
         return self.__includes_header
@@ -653,7 +644,7 @@ class Comma:
 
             if self.__primary_column_name == str(column_name):
                 self.__primary_column_name = change_to
-                
+
         except ValueError:
             print("Column does not exist")
 
