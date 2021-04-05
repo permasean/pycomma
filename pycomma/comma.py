@@ -1,6 +1,7 @@
 import json
 import typing
 import statistics
+import os
 
 class Comma:
     def __init__(
@@ -10,7 +11,8 @@ class Comma:
         delimiter=",", 
         console_mode=False,
         configs={
-            "success_messages": True
+            "success_messages": True,
+            "max_row_display": 5
         },
     ):
         self.__filepath = filepath
@@ -41,12 +43,108 @@ class Comma:
         if not self.__prepared:
             raise Exception("Must call comma.prepare() first")
 
-        five_rows = self.__data[:5]
-        header_row = str("          ".join(self.__header))
-        return header_row
+        rows = self.__data[:self.__configs["max_row_display"]]
+        longest_values = {}
+
+        for column_name in self.__header:
+            longest_values[column_name] = len(column_name)
+
+        for i in range(len(rows)):
+            for j in range(len(rows[i])):
+                if self.__header[j] not in longest_values:
+                    longest_values[self.__header[j]] = len(rows[i][j])
+                else:
+                    if longest_values[self.__header[j]] < len(rows[i][j]):
+                        longest_values[self.__header[j]] = len(rows[i][j])
+
+        # length of placeholder must be same as length of overflow_sign
+        output = ""
+        placeholder = "  "
+        terminal_column_size = os.get_terminal_size().columns
+        overflow_sign = "->"
+
+        for key in list(longest_values.keys()):
+            diff = len(key) - longest_values[key]
+
+            if diff < 0:
+                column = key + (" " * abs(diff))
+
+                reserved = len(output) + len(column) + len(placeholder)
+                if reserved <= terminal_column_size:
+                    output += column
+                else:
+                    output += overflow_sign
+                    break
+
+            elif diff >= 0:
+                reserved = len(output) + len(key) + len(placeholder)
+                if reserved <= terminal_column_size:
+                    output += key
+                else:
+                    output += overflow_sign
+                    break
+
+            output += placeholder
+
+        output += "\n"
+        
+        longest_values_keys = list(longest_values.keys())
+        for i in range(len(rows)):
+            row = rows[i]
+            row_string = ""
+
+            for j in range(len(row)):
+                key = longest_values_keys[j]
+                diff = len(row[j]) - longest_values[key]
+
+                if diff < 0:
+                    column = row[j] + (" " * abs(diff))
+
+                    reserved = len(row_string) + len(column) + len(placeholder)
+                    if reserved <= terminal_column_size:
+                        row_string += column
+                        row_string += placeholder
+                    else:
+                        row_string += overflow_sign
+                        break
+                        
+                elif diff >= 0:
+                    reserved = len(row_string) + len(key) + len(placeholder)
+                    if reserved <= terminal_column_size:
+                        row_string += row[j]
+                        row_string += placeholder
+                    else:
+                        row_string += overflow_sign
+                        break
+            
+            row_string += "\n"
+            output += row_string
+            
+        return output
 
     def show(self):
         return self
+
+    def show_configs(self):
+        return self.__configs
+
+    def set_config(self, config, value):
+        if not isinstance(config, str):
+            raise ValueError("Argument config must be a string")
+
+        if config in self.__configs:
+            if config == "success_messages":
+                if not isinstance(value, bool):
+                    raise ValueError("Config must be of bool type")
+                else:
+                    self.__configs[config] = value
+            elif config == "max_row_display":
+                if not isinstance(value, int):
+                    raise ValueError("Config must be of int type")
+                else:
+                    self.__configs[config] = value
+        else:
+            raise ValueError("Invalid configuration " + str(config))
 
     def get_data(self) -> list:
         return self.__data
@@ -178,12 +276,12 @@ class Comma:
             file_path = "data.csv"
 
         with open(file_path, "w") as csv_file:
-            header_string = _join_with_delimiter(self.__header, delimiter)
+            header_string = self._join_with_delimiter(self.__header, delimiter)
             header_string += "\n"
             csv_file.write(header_string)
 
             for row in self.__data:
-                row_string = _join_with_delimiter(row, delimiter)
+                row_string = self._join_with_delimiter(row, delimiter)
                 row_string += "\n"
                 csv_file.write(row_string)
 
@@ -276,7 +374,7 @@ class Comma:
                     self.__data[i][column_idx] = change_to
             else:
                 if self.__data[i][column_idx].lower() == changing.lower():
-                    self.__data[i][column_idx] == change_to
+                    self.__data[i][column_idx] = change_to
 
         if self.__configs["success_messages"]:
             print("Value change completed.")
@@ -596,8 +694,6 @@ class Comma:
         if self.__configs["success_messages"]:
             print("Column rearrangement completed.")
 
-        
-
     def switch_columns(self, x_column_name, y_column_name):
         if not self.__prepared:
             raise Exception("Must call comma.prepare() first")
@@ -625,6 +721,50 @@ class Comma:
             msg = "Column " + x_column_name + " switched with " + y_column_name
             print(msg)
 
+    def sort_by_column(self, column_name, reverse=False):
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
+        try: 
+            column_idx = self.__header.index(str(column_name))
+        except ValueError:
+            raise ValueError("Column " + str(column_name) + " does not exist")
+
+        if self.has_empty(column_name):
+            raise Exception("Empty row detected. All rows must have value")
+
+        try:
+            value = float(self.__data[42][column_idx])
+            numerical_column_detected = True
+        except ValueError:
+            numerical_column_detected = False
+
+        data_copy = None
+        if numerical_column_detected:
+            if reverse:
+                data_copy = sorted(
+                    self.__data, 
+                    key=lambda x: float(x[column_idx]))[::-1]
+            else:
+                data_copy = sorted(
+                    self.__data, 
+                    key=lambda x: float(x[column_idx]))
+        else:
+            if reverse:
+                data_copy = sorted(
+                    self.__data, 
+                    key=lambda x: x[column_idx])[::-1]
+            else:
+                data_copy = sorted(
+                    self.__data, 
+                    key=lambda x: x[column_idx])
+
+        self.__data = data_copy
+
+        if self.__configs["success_messages"]:
+            print("Sort completed")
+
+
     def column_stats(self, column_name, ignore_na=False) -> dict:
         return {
             "column_name": str(column_name),
@@ -645,11 +785,14 @@ class Comma:
 
         primary_column_idx = self.__header.index(self.__primary_column_name)
 
-        row_idx = 0
+        row_idx = None
         for i in range(len(self.__data)):
             if self.__data[i][primary_column_idx] == str(primary_column_value):
-                result = i
+                row_idx = i
                 break
+        
+        if row_idx is None:
+            raise Exception("Could not find row")
 
         return row_idx
 
