@@ -638,6 +638,25 @@ class Comma:
 
         return values
 
+    def change_column_name(self, column_name, change_to):
+        if not self.__prepared:
+            raise Exception("Must call comma.prepare() first")
+
+        try:
+            change_to = str(change_to)
+        except ValueError:
+            raise ValueError("Argument change_to must be a str")
+
+        try: 
+            column_idx = self.__header.index(str(column_name))
+            self.__header[column_idx] = change_to
+
+            if self.__primary_column_name == str(column_name):
+                self.__primary_column_name = change_to
+                
+        except ValueError:
+            print("Column does not exist")
+
     def add_column(self, column_name, data):
         if not self.__prepared:
             raise Exception("Must call comma.prepare() first")
