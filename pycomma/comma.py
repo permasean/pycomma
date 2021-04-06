@@ -9,10 +9,6 @@ class Comma:
         filepath, 
         includes_header=True, 
         delimiter=",", 
-        configs={
-            "success_messages": True,
-            "max_row_display": 5
-        },
     ):
         self.__filepath = filepath
 
@@ -29,7 +25,10 @@ class Comma:
         self.__prepared = False
         self.__json = {}
         self.__primary_column_name = None
-        self.__configs = configs
+        self.__configs = {
+            "success_messages": True,
+            "max_row_display": 5
+        }
         
         # self.__history WIP
 
