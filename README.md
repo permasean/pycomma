@@ -1,5 +1,5 @@
 ## pycomma
-A csv processor designed to allow data processing workflows to be done within a python shell
+A class designed to allow csv data processing workflows to be done within a python shell
 
 Documentation coming soon.
 
