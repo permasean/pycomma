@@ -29,14 +29,27 @@ class Comma:
             "success_messages": True,
             "max_row_display": 5
         }
+
+        self.__internal_configs = {
+            "row_display_start": -1,
+            "row_display_end": -1
+        }
         
         # self.__history WIP
 
     def __repr__(self):
         if not self.__prepared:
-            raise Exception("Must call comma.prepare() first")
+            raise Exception("Must call comma.prepare() first")\
 
         rows = self.__data[:self.__configs["max_row_display"]]
+
+        if self.__internal_configs["row_display_start"] != -1 and \
+            self.__internal_configs["row_display_end"] != -1:
+            start = self.__internal_configs["row_display_start"]
+            end = self.__internal_configs["row_display_end"]
+
+            rows = self.__data[start:end+1]
+
         longest_values = {}
 
         for column_name in self.__header:
@@ -52,7 +65,7 @@ class Comma:
 
         # length of placeholder must be same as length of overflow_sign
         output = ""
-        placeholder = "  "
+        placeholder = " "
         terminal_column_size = os.get_terminal_size().columns
         overflow_sign = "->"
 
@@ -62,7 +75,7 @@ class Comma:
             if diff < 0:
                 column = key + (" " * abs(diff))
 
-                reserved = len(output) + len(column) + len(placeholder)
+                reserved = len(output) + len(column) + len(overflow_sign)
                 if reserved <= terminal_column_size:
                     output += column
                 else:
@@ -70,7 +83,7 @@ class Comma:
                     break
 
             elif diff >= 0:
-                reserved = len(output) + len(key) + len(placeholder)
+                reserved = len(output) + len(key) + len(overflow_sign)
                 if reserved <= terminal_column_size:
                     output += key
                 else:
@@ -93,7 +106,7 @@ class Comma:
                 if diff < 0:
                     column = row[j] + (" " * abs(diff))
 
-                    reserved = len(row_string) + len(column) + len(placeholder)
+                    reserved = len(row_string)+len(column)+len(overflow_sign)
                     if reserved <= terminal_column_size:
                         row_string += column
                         row_string += placeholder
@@ -102,7 +115,7 @@ class Comma:
                         break
                         
                 elif diff >= 0:
-                    reserved = len(row_string) + len(key) + len(placeholder)
+                    reserved = len(row_string) + len(key) + len(overflow_sign)
                     if reserved <= terminal_column_size:
                         row_string += row[j]
                         row_string += placeholder
@@ -113,10 +126,33 @@ class Comma:
             row_string += "\n"
             output += row_string
             
+            self._set_internal_config("row_display_start", -1)
+            self._set_internal_config("row_display_end", -1)
+
         return output
 
-    def show(self):
+    def show(self, row_start=-1, row_end=-1):
+        self._set_internal_config("row_display_start", row_start)
+        self._set_internal_config("row_display_end", row_end)
         return self
+
+    def _set_internal_config(self, config, value):
+        if not isinstance(config, str):
+            raise ValueError("Argument config must be a string")
+
+        if config in self.__internal_configs:
+            if config == "row_display_start":
+                if not isinstance(value, int):
+                    raise ValueError("Config must be of int type")
+                else:
+                    self.__internal_configs[config] = value
+            elif config == "row_display_end":
+                if not isinstance(value, int):
+                    raise ValueError("Config must be of int type")
+                else:
+                    self.__internal_configs[config] = value
+        else:
+            raise ValueError("Invalid configuration " + str(config))
 
     def get_configs(self) -> dict:
         return self.__configs
