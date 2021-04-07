@@ -169,7 +169,7 @@ class Comma:
     def get_primary(self) -> str:
         return self._get_primary_column_name()
 
-    def _set_primary_column_name(self, column_name, ignore_duplicate=False):
+    def _set_primary_column_name(self, column_name):
         if not self.__prepared:
             raise Exception("Must call comma.prepare() first")
 
@@ -180,12 +180,9 @@ class Comma:
         if len(self.unique_values(str(column_name))) == num_of_rows:   
             self.__primary_column_name = str(column_name)
         else:
-            if not ignore_duplicate:
-                msg = "Duplicate values detected. "
-                msg = "Primary column cannot have duplicate values"
-                raise Exception(msg)
-            else:
-                self.__primary_column_name = column_name
+            msg = "Duplicate values detected. "
+            msg = "Primary column cannot have duplicate values"
+            raise Exception(msg)
 
     def _get_prepared(self) -> bool:
         return self.__prepared
@@ -201,8 +198,8 @@ class Comma:
         if not self.file_is_closed():
             self.__csv_file.close()
 
-    def assign_primary(self, column_name, ignore_duplicate=False):
-        self._set_primary_column_name(column_name, ignore_duplicate)
+    def assign_primary(self, column_name):
+        self._set_primary_column_name(column_name)
 
     def dimension(self) -> dict:
         return {"columns": len(self.__header), "rows": len(self.__data)}
@@ -425,7 +422,7 @@ class Comma:
 
         return False
 
-    def fill_empty(self, column_name, replace_with):
+    def fill_empty(self, column_name, fill_with):
         if not self.__prepared:
             raise Exception("Must call comma.prepare() first")
 
@@ -435,15 +432,15 @@ class Comma:
             raise ValueError("Column " + str(column_name) + " does not exist")
 
         try:
-            replace_with = str(replace_with)
+            replace_with = str(fill_with)
         except ValueError:
             raise ValueError("Argument cannot be converted to String")
 
         count = 0
         for i in range(len(self.__data)):
             if not self.__data[i][column_idx]:
-                if replace_with:
-                    self.__data[i][column_idx] = replace_with
+                if fill_with:
+                    self.__data[i][column_idx] = fill_with
                 else:
                     self.__data[i][column_idx] = "None"
                 count += 1
@@ -882,14 +879,14 @@ class Comma:
         if self.__configs["success_messages"]:
             print("Successfully deleted " + str(len(row_indices)) + " rows")
 
-    def add_row(self, row):
-        if not isinstance(row, list):
+    def add_row(self, data):
+        if not isinstance(data, list):
             raise Exception("Incorrect param type detected. Must be a list")
 
-        if len(row) != len(self.__header):
+        if len(data) != len(self.__header):
             raise Exception("Length of row must match the number of columns")
 
-        self.__data.append(row)
+        self.__data.append(data)
 
         if self.__configs["success_messages"]:
             print("Successfully added row")
@@ -921,12 +918,8 @@ class Comma:
 
         return result
 
-    def get_values(self, idx, column_names=[]) -> list:
+    def get_row_values(self, idx) -> list:
         if not isinstance(idx, int):
             raise ValueError("Invalid argument type idx. Must be integer")
-
-        if not isinstance(column_names, list):
-            msg = "Invalid argument type column_names. Must be list"
-            raise ValueError(msg)
             
         return self.get_data()[idx]
