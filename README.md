@@ -8,7 +8,7 @@ A python library designed to allow csv data processing workflows completely with
 
 ``` pip install pycomma ```
 ``` 
-import comma from Comma 
+from pycomma.comma import Comma 
 comma = Comma("data.csv")
 comma.prepare()
 comma.show()
