@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='pycomma',
-    version='0.1.0',
+    version='0.1.1',
     description='Python library for processing CSV files',
     long_description=long_description,
     long_description_content_type='text/markdown',
