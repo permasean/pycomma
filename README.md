@@ -2,7 +2,7 @@
 A python library designed to allow csv data processing workflows completely within a python shell 
 
 [Documentation](https://jordankobewade.github.io/pycomma)
-
+[PyPi](https://pypi.org/project/pycomma/)
 
 ### Quickstart
 
