@@ -1,3 +1,6 @@
 v0.1.2
 - show() now has row selection capability
 - lessened gap between columns in __repr__ output
+
+v0.1.3
+- reverting gap lessening change from v0.1.2

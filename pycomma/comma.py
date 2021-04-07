@@ -65,7 +65,7 @@ class Comma:
 
         # length of placeholder must be same as length of overflow_sign
         output = ""
-        placeholder = " "
+        placeholder = "  "
         terminal_column_size = os.get_terminal_size().columns
         overflow_sign = "->"
 
@@ -75,7 +75,7 @@ class Comma:
             if diff < 0:
                 column = key + (" " * abs(diff))
 
-                reserved = len(output) + len(column) + len(overflow_sign)
+                reserved = len(output) + len(column) + len(placeholder)
                 if reserved <= terminal_column_size:
                     output += column
                 else:
@@ -83,7 +83,7 @@ class Comma:
                     break
 
             elif diff >= 0:
-                reserved = len(output) + len(key) + len(overflow_sign)
+                reserved = len(output) + len(key) + len(placeholder)
                 if reserved <= terminal_column_size:
                     output += key
                 else:
@@ -106,7 +106,7 @@ class Comma:
                 if diff < 0:
                     column = row[j] + (" " * abs(diff))
 
-                    reserved = len(row_string)+len(column)+len(overflow_sign)
+                    reserved = len(row_string)+len(column)+len(placeholder)
                     if reserved <= terminal_column_size:
                         row_string += column
                         row_string += placeholder
@@ -115,7 +115,7 @@ class Comma:
                         break
                         
                 elif diff >= 0:
-                    reserved = len(row_string) + len(key) + len(overflow_sign)
+                    reserved = len(row_string) + len(key) + len(placeholder)
                     if reserved <= terminal_column_size:
                         row_string += row[j]
                         row_string += placeholder
