@@ -1,7 +1,7 @@
 ## pycomma
-A python class designed to emulate csv data processing workflows solely within a python shell 
+A python library designed to allow csv data processing workflows completely within a python shell 
 
-Documentation coming soon.
+[Documentation](https://jordankobewade.github.io/pycomma)
 
 
 ### Quickstart
