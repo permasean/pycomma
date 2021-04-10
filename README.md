@@ -1,5 +1,6 @@
 ## pycomma
 A python library designed to allow csv data processing workflows completely within a python shell 
+
 Current optimized for small datasets
 
 [Documentation](https://jordankobewade.github.io/pycomma)
