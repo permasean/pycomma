@@ -2,6 +2,7 @@ import json
 import typing
 import statistics
 import os
+import datetime
 
 class Comma:
     def __init__(
@@ -205,7 +206,7 @@ class Comma:
     def get_primary(self) -> str:
         return self._get_primary_column_name()
 
-    def _set_primary_column_name(self, column_name):
+    def _set_primary_column_name(self, column_name, ignore_duplicates=False):
         if not self.__prepared:
             raise Exception("Must call comma.prepare() first")
 
@@ -213,12 +214,15 @@ class Comma:
             raise ValueError("Column " + str(column_name) + " does not exist")
             
         num_of_rows = self.dimension()["rows"]
-        if len(self.unique_values(str(column_name))) == num_of_rows:   
-            self.__primary_column_name = str(column_name)
+        if not ignore_duplicates:
+            if len(self.unique_values(str(column_name))) == num_of_rows:   
+                self.__primary_column_name = str(column_name)
+            else:
+                msg = "Duplicate values detected. "
+                msg = "Primary column cannot have duplicate values"
+                raise Exception(msg)
         else:
-            msg = "Duplicate values detected. "
-            msg = "Primary column cannot have duplicate values"
-            raise Exception(msg)
+            self.__primary_column_name = str(column_name)
 
     def _get_prepared(self) -> bool:
         return self.__prepared
@@ -234,53 +238,46 @@ class Comma:
         if not self.file_is_closed():
             self.__csv_file.close()
 
-    def assign_primary(self, column_name):
-        self._set_primary_column_name(column_name)
+    def assign_primary(self, column_name, ignore_duplicates=False):
+        self._set_primary_column_name(column_name, ignore_duplicates=ignore_duplicates)
 
     def dimension(self) -> dict:
         return {"columns": len(self.__header), "rows": len(self.__data)}
 
-    def _extract_header_from_file(self) -> list:
-        header_line = self.__csv_file.readline()
-        header = header_line.split(self.__delimiter)
-        header[-1] = header[-1].replace("\n", "")
-        return header
-
-    def _extract_data_from_file(self) -> list:
-        data = []
-        line = self.__csv_file.readline()
-
-        while line:
-            line = line.split(self.__delimiter)
-            line[-1] = line[-1].replace("\n", "")
-            data.append(line)
-            line = self.__csv_file.readline()
-
-        return data
-
     def prepare(self):
+        start_time = datetime.datetime.now()
+    
         if not self.__prepared:
-            csv_file = open(self.__filepath, mode="r", encoding="utf-8")
-            self.__csv_file = csv_file
+            with open(self.__filepath, mode="r", encoding="utf-8") as csv_file:
+                if self.__includes_header:
+                    header_line = csv_file.readline()
+                    header = header_line.split(self.__delimiter)
+                    header[-1] = header[-1].replace("\n", "")
+                    self.__header = header
+                else:
+                    if len(self.__header) == 0 or self.__header is None:
+                        msg = "No header detected. "
+                        msg += "Please manually set a header before prepare call."
+                        raise Exception(msg)
 
-            if self.__includes_header:
-                self.__header = self._extract_header_from_file()
-            else:
-                if len(self.__header) == 0 or self.__header is None:
-                    msg = "No header detected. "
-                    msg += "Please manually set a header before prepare call."
-                    self.__csv_file.close()
-                    raise Exception(msg)
+                self.__data = []
+                line = csv_file.readline()
 
-            self.__data = self._extract_data_from_file()
+                while line:
+                    line = line.split(self.__delimiter)
+                    line[-1] = line[-1].replace("\n", "")
+                    self.__data.append(line)
+                    line = csv_file.readline()
 
-            self.__csv_file.close()
-            self.__prepared = True
-            if self.__configs["success_messages"]:
-                print("Preparation complete")
+                self.__prepared = True
+                
+                if self.__configs["success_messages"]:
+                    print("Preparation complete")
         else:
-            self.__csv_file.close()
             raise Exception("Redundant preparation call detected")
+
+        end_time = datetime.datetime.now()
+        print("Time elapsed: " + str(end_time - start_time))
 
     def _to_json(self) -> dict:
         if not self.__prepared:
@@ -324,7 +321,7 @@ class Comma:
         if self.__configs["success_messages"]:
             print("Export completed at " + file_path)
 
-    def save_as_json(self, file_path=None):
+    def save_as_json(self, file_path=None, use_wrapper=True):
         if not self.__json or self.__json is None:
             self._to_json()
         
@@ -332,7 +329,11 @@ class Comma:
             file_path = "data.json"
 
         with open(file_path, "w") as json_file:
-            json.dump(self.__json, json_file)
+            if use_wrapper:
+                json.dump(self.__json, json_file)
+            else:
+                data = self.__json["data"]
+                json.dump(data, json_file)
 
         if self.__configs["success_messages"]:
             print("Export completed at " + file_path)
